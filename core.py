@@ -19,7 +19,7 @@
   this program. If not, see <http://www.gnu.org/licenses/>.
   
 """
-
+import Queue
 import SocketServer
 import BaseHTTPServer
 import socket
@@ -30,6 +30,7 @@ import os
 import urllib
 import ssl
 import copy
+import sys
 
 from history import *
 from http import *
@@ -42,7 +43,7 @@ proxystate = None
 
 class ProxyHandler(SocketServer.StreamRequestHandler):
     def __init__(self, request, client_address, server):
-        self.peer = False
+        self.peer = True
         self.keepalive = False
         self.target = None
 
@@ -62,7 +63,9 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         try:
             # If a SSL tunnel was established, create a HTTPS connection to the server
             if self.peer:
-                conn = httplib.HTTPSConnection(host, port)
+                # FIXME - change to verify context
+                defContext = ssl._create_unverified_context()
+                conn = httplib.HTTPSConnection(host, port, context=defContext)
             else:
                 # HTTP Connection
                 conn = httplib.HTTPConnection(host, port)
@@ -114,8 +117,8 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             return
 
         # Delegate request to plugin
-        req = ProxyPlugin.delegate(ProxyPlugin.EVENT_MANGLE_REQUEST, req.clone())
-        #req = req.clone()
+        #req = ProxyPlugin.delegate(ProxyPlugin.EVENT_MANGLE_REQUEST, req.clone())
+        req = req.clone()
         proxystate.log.printMessages(req)
 
         # if you need a persistent connection set the flag in order to save the status
@@ -123,16 +126,18 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             self.keepalive = True
         else:
             self.keepalive = False
-        
-        # Target server host and port
-        host, port = ProxyState.getTargetHost(req)
 
-        res = self.execRequest(host, port, req)
-        self.sendResponse(res)
+        if proxystate.activateQp:
+            self.handleQpRequest(req)
+        else:
+            # Target server host and port
+            host, port = ProxyState.getTargetHost(req)
+            self.execRequest(host, port, req)
 
     def _request(self, conn, method, path, params, headers):
         global proxystate
         conn.putrequest(method, path, skip_host = True, skip_accept_encoding = True)
+
         for header,v in headers.iteritems():
             # auto-fix content-length
             if header.lower() == 'content-length':
@@ -140,8 +145,8 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             else:
                 for i in v:
                     conn.putheader(header, i)
+        
         conn.endheaders()
-
         if len(params) > 0:
             conn.send(params)
 
@@ -160,9 +165,64 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         if not self.doRequest(conn, req.getMethod(), req.getPath(), req.getBody(), req.headers): return ''
         res = self._getresponse(conn)
         data = res.serialize()
-        return data
+        self.sendResponse(data)
 
+    def handleQpRequest(self, req):
+        #TODO handle qp request
+        queryParams = req.getQueryParams()
+
+        if 'getQueuedRequest' in queryParams: 
+            self.getQueuedRequest()
+        elif 'setQueuedResponse' in queryParams: 
+            self.setQueuedResponse(req)
+        else: 
+            self.execQueueRequest(req)
+
+    def execQueueRequest(self, req):
+        self.setQueuedRequest(req)
+        self.getQueuedResponse()
+
+    # sets the a queued request
+    def setQueuedRequest(self, req):
+
+        try:
+            proxystate.reqQueue.put(req)
+        except Queue.Full as e:
+            proxystate.log.debug(e.__str__())
+            return
+        
+    # gets the next queued request and sends it back
+    def getQueuedRequest(self):
+        
+        try:
+            req = proxystate.reqQueue.get()
+        except Queue.Full as e:
+            proxystate.log.debug(e.__str__())
+            return
+
+        reqRes = req.serialize()
+        self.sendResponse(reqRes)
+        
+    def setQueuedResponse(self, req):
+
+        try:
+            proxystate.resQueue.put(req.getBody())
+        except Queue.Full as e:
+            proxystate.log.debug(e.__str__())
+            return
+
+        res = HTTPResponse('HTTP/1.1', 200, 'OK')
+        self.sendResponse(res.serialize())
+
+    def getQueuedResponse(self):
+        res = proxystate.resQueue.get()
+        print("#### reached get response from queue#####")
+        print res
+        self.sendResponse(res)
+
+    #this method is not needed in our case as our proxy is not a ssh tunnel
     def doCONNECT(self, host, port, req):
+
         global proxystate
 
         socket_req = self.request
@@ -186,7 +246,6 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         # Switch to new socket
         self.peer    = True
         self.request = socket_ssl
-
         self.setup()
         self.handle()
 
@@ -226,11 +285,16 @@ class ProxyServer():
         proxystate = init_state
         self.proxyServer_port = proxystate.listenport
         self.proxyServer_host = proxystate.listenaddr
+        
 
     def startProxyServer(self):
         global proxystate
         
         self.proxyServer = ThreadedHTTPProxyServer((self.proxyServer_host, self.proxyServer_port), ProxyHandler)
+
+        #start https server
+        if proxystate.https == True:
+            self.proxyServer.socket = ssl.wrap_socket (self.proxyServer.socket, certfile=DEFAULT_CERT_FILE, server_side=True)
 
         # Start a thread with the server (that thread will then spawn a worker
         # thread for each request)
@@ -259,6 +323,8 @@ class ProxyState:
         self.log        = Logger()
         self.history    = HttpHistory()
         self.redirect   = None
+        self.reqQueue = Queue.Queue()
+        self.resQueue = Queue.Queue()
 
     @staticmethod
     def getTargetHost(req):

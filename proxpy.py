@@ -25,6 +25,8 @@
 import sys
 import getopt
 
+import sys
+sys.path.append('../ds_common')
 from core import *
 
 def show_help():
@@ -37,11 +39,13 @@ Syntax: python %s <options>
  -r <host:[port]>  redirect HTTP traffic to target host (default port: 80)
  -v                be more verbose
  -x <filename>     load a ProxPy plugin
+ -i                activate queue-poll
+ -s                activate https
 """ % sys.argv[0]
 
 def parse_options():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:")
+        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:is")
     except getopt.GetoptError, e:
         print str(e)
         show_help()
@@ -77,9 +81,17 @@ def parse_options():
             p = int(p)
         ps.redirect = (h, p)
 
+    if 'i' in opts:
+        ps.activateQp = True
+    else:
+        ps.activateQp = False
+
+    ps.https = True if 's' in opts else False
+
     # Load an external plugin
     if 'x' in opts:
         ps.plugin = ProxyPlugin(opts['x'])
+
 
     return ps
 
