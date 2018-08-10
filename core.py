@@ -216,8 +216,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
 
     def getQueuedResponse(self):
         res = proxystate.resQueue.get()
-        print("#### reached get response from queue#####")
-        print res
+        proxystate.log.printMessages(res)
         self.sendResponse(res)
 
     #this method is not needed in our case as our proxy is not a ssh tunnel
