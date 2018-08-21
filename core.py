@@ -82,7 +82,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         return conn
 
     def sendResponse(self, res):
-        self.wfile.write(res.encode('utf-8'))
+        self.wfile.write(res.encode('latin-1'))
 
     def finish(self):
         if not self.keepalive:
@@ -258,7 +258,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
             # FIXME: check the return value into the do* methods
             return None
 
-        body = res.read().decode('utf-8')
+        body = res.read().decode('latin-1')
         if res.version == 10:
             proto = "HTTP/1.0"
         else:
