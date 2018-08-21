@@ -140,7 +140,7 @@ class HttpHistory:
 """ % (name, t)
 
                     # Process entry headers
-                    for hname, hvalues in v.headers.iteritems():
+                    for hname, hvalues in v.headers.items():
                         for hvalue in hvalues:
                             s += """\
           <Header>

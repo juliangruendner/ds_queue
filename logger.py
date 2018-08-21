@@ -39,7 +39,7 @@ class Logger:
     def __out(self, msg, head, color):
         tid = threading.current_thread().ident & 0xffffffff
         tid = " %s " % colorize("<%.8x>" % tid, COLOR_PURPLE)
-        print colorize(head, color) + tid + msg    
+        print(colorize(head, color) + tid + msg)    
 
     def info(self, msg):
         self.__out(msg, "[*]", COLOR_GREEN)
@@ -58,14 +58,14 @@ class Logger:
         if self.verbosity > 0:
 
             if not req.isResponse():
-                print"#########REQUEST##########\n"
+                print("#########REQUEST##########\n")
             else:
-                print"=========RESPONSE========="
+                print("=========RESPONSE=========")
 
             print(req)
             
             if req.body:
-                print "----------body---------"
-                print req.body
-                print "----------body---------\n"
-                print "----------------END---------------\n"
+                print("----------body---------")
+                print(req.body)
+                print("----------body---------\n")
+                print("----------------END---------------\n")

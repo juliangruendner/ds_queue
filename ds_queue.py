@@ -30,7 +30,7 @@ sys.path.append('../ds_common')
 from core import *
 
 def show_help():
-    print """\
+    print("""\
 Syntax: python %s <options>
  -a <addr>         listen address (default 0.0.0.0)
  -d <filename>     on termination, dump requests & responses to file
@@ -41,13 +41,13 @@ Syntax: python %s <options>
  -x <filename>     load a ProxPy plugin
  -i                activate queue-poll
  -s                activate https
-""" % sys.argv[0]
+""" % sys.argv[0])
 
 def parse_options():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:is")
-    except getopt.GetoptError, e:
-        print str(e)
+    except getopt.GetoptError as e:
+        print(str(e))
         show_help()
         exit(1)
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     global proxystate
     try:
         main()
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         nreq, nres = proxystate.history.count()
         proxystate.log.info("Terminating... [%d requests, %d responses]" % (nreq, nres))
         if proxystate.dumpfile is not None:

@@ -19,29 +19,29 @@
   this program. If not, see <http://www.gnu.org/licenses/>.
   
 """
-import Queue
-import SocketServer
-import BaseHTTPServer
+import queue
+import socketserver
+import http.server
 import socket
 import threading
-import httplib
+import http.client
 import time
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import ssl
 import copy
 import sys
 
 from history import *
-from http import *
-from https import *
+from ds_http import *
+from ds_https import *
 from logger import Logger
 
 DEFAULT_CERT_FILE = "./cert/ncerts/proxpy.pem"
 
 proxystate = None
 
-class ProxyHandler(SocketServer.StreamRequestHandler):
+class ProxyHandler(socketserver.StreamRequestHandler):
     def __init__(self, request, client_address, server):
         self.peer = True
         self.keepalive = False
@@ -52,7 +52,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         self._host = None
         self._port = 0
 
-        SocketServer.StreamRequestHandler.__init__(self, request, client_address, server)
+        socketserver.StreamRequestHandler.__init__(self, request, client_address, server)
     
     def createConnection(self, host, port):
         global proxystate
@@ -65,10 +65,10 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             if self.peer:
                 # FIXME - change to verify context
                 defContext = ssl._create_unverified_context()
-                conn = httplib.HTTPSConnection(host, port, context=defContext)
+                conn = http.client.HTTPSConnection(host, port, context=defContext)
             else:
                 # HTTP Connection
-                conn = httplib.HTTPConnection(host, port)
+                conn = http.client.HTTPConnection(host, port)
         except HTTPException as e:
             proxystate.log.debug(e.__str__())
 
@@ -82,13 +82,13 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         return conn
 
     def sendResponse(self, res):
-        self.wfile.write(res)
+        self.wfile.write(res.encode('utf-8'))
 
     def finish(self):
         if not self.keepalive:
             if self.target:
                 self.target.close()
-            return SocketServer.StreamRequestHandler.finish(self)
+            return socketserver.StreamRequestHandler.finish(self)
 
         # Otherwise keep-alive is True, then go on and listen on the socket
         return self.handle()
@@ -138,7 +138,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         global proxystate
         conn.putrequest(method, path, skip_host = True, skip_accept_encoding = True)
 
-        for header,v in headers.iteritems():
+        for header,v in headers.items():
             # auto-fix content-length
             if header.lower() == 'content-length':
                 conn.putheader(header, str(len(params)))
@@ -187,7 +187,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
 
         try:
             proxystate.reqQueue.put(req)
-        except Queue.Full as e:
+        except queue.Full as e:
             proxystate.log.debug(e.__str__())
             return
         
@@ -196,18 +196,20 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         
         try:
             req = proxystate.reqQueue.get()
-        except Queue.Full as e:
+        except queue.Full as e:
             proxystate.log.debug(e.__str__())
             return
 
-        reqRes = req.serialize()
-        self.sendResponse(reqRes)
+        res = HTTPResponse('HTTP/1.1', 200, 'OK')
+        res.body = req.serialize()
+
+        self.sendResponse(res.serialize())
         
     def setQueuedResponse(self, req):
 
         try:
             proxystate.resQueue.put(req.getBody())
-        except Queue.Full as e:
+        except queue.Full as e:
             proxystate.log.debug(e.__str__())
             return
 
@@ -216,7 +218,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
 
     def getQueuedResponse(self):
         res = proxystate.resQueue.get()
-        proxystate.log.printMessages(res)
+        #proxystate.log.printMessages(res)
         self.sendResponse(res)
 
     #this method is not needed in our case as our proxy is not a ssh tunnel
@@ -251,12 +253,12 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
     def _getresponse(self, conn):
         try:
             res = conn.getresponse()
-        except httplib.HTTPException as e:
-            proxystate.log.debug(e.__str__())
+        except http.client.HTTPException as e:
+            proxystate.log.debug(e.__str__() + ": Error getting response")
             # FIXME: check the return value into the do* methods
             return None
 
-        body = res.read()
+        body = res.read().decode('utf-8')
         if res.version == 10:
             proto = "HTTP/1.0"
         else:
@@ -264,18 +266,19 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
 
         code = res.status
         msg = res.reason
-        headers = res.msg.headers
-        res = HTTPResponse(proto, code, msg, res.msg.headers, body)
+        headers = res.getheaders()
+        headers = dict((x, y) for x, y in headers)
+        res = HTTPResponse(proto, code, msg, headers, body)
 
-        if 'Transfer-Encoding: chunked\r\n' in headers:
+        if 'Transfer-Encoding' in headers.keys():
             res.removeHeader('Transfer-Encoding')
-            res.addHeader('Content-Length', str(len(body)))
+            res.addHeader('Content-Length', str(len(body)))        
 
         proxystate.log.printMessages(res)
 
         return res
 
-class ThreadedHTTPProxyServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class ThreadedHTTPProxyServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
 class ProxyServer():    
@@ -322,8 +325,8 @@ class ProxyState:
         self.log        = Logger()
         self.history    = HttpHistory()
         self.redirect   = None
-        self.reqQueue = Queue.Queue()
-        self.resQueue = Queue.Queue()
+        self.reqQueue = queue.Queue()
+        self.resQueue = queue.Queue()
 
     @staticmethod
     def getTargetHost(req):
