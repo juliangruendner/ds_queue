@@ -41,11 +41,12 @@ Syntax: python %s <options>
  -x <filename>     load a ProxPy plugin
  -i                activate queue-poll
  -s                activate https
+ -t <requestTimeout:responseTimeout> set requst and response timeout note "None" is for no timeout
 """ % sys.argv[0])
 
 def parse_options():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:is")
+        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:ist:")
     except getopt.GetoptError as e:
         print(str(e))
         show_help()
@@ -80,6 +81,16 @@ def parse_options():
             h,p = h.split(':')
             p = int(p)
         ps.redirect = (h, p)
+
+    if 't' in opts:
+        timeouts = opts['t']
+        req_t,res_t = timeouts.split(':')
+        
+        if req_t != "None":
+            ps.requestTimeout = int(req_t)
+
+        if res_t != "None":
+            ps.responseTimeout = int(res_t)
 
     if 'i' in opts:
         ps.activateQp = True

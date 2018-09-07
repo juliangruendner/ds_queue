@@ -119,7 +119,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         # Delegate request to plugin
         #req = ProxyPlugin.delegate(ProxyPlugin.EVENT_MANGLE_REQUEST, req.clone())
         req = req.clone()
-        proxystate.log.printMessages(req)
+        #proxystate.log.printMessages(req)
 
         # if you need a persistent connection set the flag in order to save the status
         if req.isKeepAlive():
@@ -195,9 +195,13 @@ class ProxyHandler(socketserver.StreamRequestHandler):
     def getQueuedRequest(self):
         
         try:
-            req = proxystate.reqQueue.get()
+            req = proxystate.reqQueue.get(timeout=proxystate.requestTimeout)
         except queue.Full as e:
             proxystate.log.debug(e.__str__())
+            return
+        except queue.Empty:
+            res = HTTPResponse('HTTP/1.1', 204, 'NO CONTENT')
+            self.sendResponse(res.serialize())
             return
 
         res = HTTPResponse('HTTP/1.1', 200, 'OK')
@@ -217,7 +221,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         self.sendResponse(res.serialize())
 
     def getQueuedResponse(self):
-        res = proxystate.resQueue.get()
+        res = proxystate.resQueue.get(timeout=proxystate.responseTimeout)
         #proxystate.log.printMessages(res)
         self.sendResponse(res)
 
@@ -274,7 +278,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
             res.removeHeader('Transfer-Encoding')
             res.addHeader('Content-Length', str(len(body)))        
 
-        proxystate.log.printMessages(res)
+        #proxystate.log.printMessages(res)
 
         return res
 
@@ -327,6 +331,8 @@ class ProxyState:
         self.redirect   = None
         self.reqQueue = queue.Queue()
         self.resQueue = queue.Queue()
+        self.responseTimeout = None
+        self.requestTimeout = None
 
     @staticmethod
     def getTargetHost(req):
