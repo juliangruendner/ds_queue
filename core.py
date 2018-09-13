@@ -285,6 +285,17 @@ class ProxyHandler(socketserver.StreamRequestHandler):
 class ThreadedHTTPProxyServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
+    def verify_request(self, request, client_address):
+
+        if not proxystate.allowed_ips:
+            return True
+
+        if client_address[0] in proxystate.allowed_ips:
+            return True
+
+        return False
+
+
 class ProxyServer():    
     def __init__(self, init_state):
         global proxystate
@@ -333,6 +344,7 @@ class ProxyState:
         self.resQueue = queue.Queue()
         self.responseTimeout = None
         self.requestTimeout = None
+        self.allowed_ips = None
 
     @staticmethod
     def getTargetHost(req):

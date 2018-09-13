@@ -42,11 +42,12 @@ Syntax: python %s <options>
  -i                activate queue-poll
  -s                activate https
  -t <requestTimeout:responseTimeout> set requst and response timeout note "None" is for no timeout
+ -c  <ip,ip,ip>              set restriction to certain client ip ("," seperated ip addresses) - note for poll to work poll server needs to be one of them
 """ % sys.argv[0])
 
 def parse_options():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:ist:")
+        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:ist:c:")
     except getopt.GetoptError as e:
         print(str(e))
         show_help()
@@ -96,6 +97,9 @@ def parse_options():
         ps.activateQp = True
     else:
         ps.activateQp = False
+
+    if 'c' in opts:
+        ps.allowed_ips = opts['c'].split(",")
 
     ps.https = True if 's' in opts else False
 
