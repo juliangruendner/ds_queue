@@ -293,6 +293,7 @@ class ThreadedHTTPProxyServer(socketserver.ThreadingMixIn, socketserver.TCPServe
         if client_address[0] in proxystate.allowed_ips:
             return True
 
+        print("rejecting: " + client_address[0] )
         return False
 
 
