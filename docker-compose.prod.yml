@@ -1,0 +1,14 @@
+version: '2.0'
+
+services:
+
+  queue_server:
+    container_name: queue_server_prod
+    image: python:3
+    volumes:
+      - ../ds_queue:/root/ds_queue
+      - ../ds_common:/root/ds_common
+    ports:
+      - "443:443"
+    command: bash -c "tail -f /dev/null"
+
