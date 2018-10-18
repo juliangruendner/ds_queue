@@ -222,6 +222,11 @@ class ProxyHandler(socketserver.StreamRequestHandler):
 
     def getQueuedResponse(self):
         res = proxystate.resQueue.get(timeout=proxystate.responseTimeout)
+
+        #TODO tidy up if no resposne => empty request queue as well
+
+        proxystate.reqQueue.
+        
         #proxystate.log.printMessages(res)
         self.sendResponse(res)
 
