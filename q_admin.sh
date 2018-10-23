@@ -1,6 +1,7 @@
 COMMAND=$1
 TIMEOUT_QUEUE_AND_POLL=${2:-"-t 10:10"}
 ALLOWED_IPS=${3:-""}
+
 function getQueueStatus() {
 
     if [ "" == "$(pgrep -f queue.py)" ]; then 
