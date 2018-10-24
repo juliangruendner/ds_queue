@@ -182,11 +182,11 @@ class ProxyHandler(socketserver.StreamRequestHandler):
 
     # resets the request and response queues
     def resetQueue (self):
-
         proxystate.reqQueue.queue.clear()
         proxystate.resQueue.queue.clear()
 
         res = HTTPResponse('HTTP/1.1', 200, 'OK')
+        res.body ="queue reset"
         self.sendResponse(res.serialize())
     
     # gets the next queued request and sends it back
@@ -329,7 +329,7 @@ class ProxyServer():
         #start https server
         if proxystate.https == True:
             print("activating https", file=sys.stderr)
-            self.proxyServer.socket = ssl.wrap_socket (self.proxyServer.socket, certfile=DEFAULT_CERT_FILE, server_side=True)
+            self.proxyServer.socket = ssl.wrap_socket(self.proxyServer.socket, certfile=DEFAULT_CERT_FILE, server_side=True)
 
         # Start a thread with the server (that thread will then spawn a worker
         # thread for each request)
