@@ -239,7 +239,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         self.sendResponse(res.serialize())
 
     def getQueuedResponse(self, reqId):
-        res = proxystate.resQueueList[reqId].get()
+        res = proxystate.resQueueList[reqId].get(timeout=proxystate.responseTimeout)
         del proxystate.resQueueList[reqId]
         
         #proxystate.log.printMessages(res)
