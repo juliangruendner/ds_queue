@@ -31,6 +31,7 @@ import urllib.request, urllib.parse, urllib.error
 import ssl
 import copy
 import sys
+import uuid
 
 from history import *
 from ds_http import *
@@ -191,14 +192,17 @@ class ProxyHandler(socketserver.StreamRequestHandler):
     
     # gets the next queued request and sends it back
     def execQueueRequest(self, req):
-        self.setQueuedRequest(req)
-        self.getQueuedResponse()
+        reqUu = str(uuid.uuid4())
+        self.setQueuedRequest(req,reqUu)
+        self.getQueuedResponse(reqUu)
 
     # sets the a queued request
-    def setQueuedRequest(self, req):
+    def setQueuedRequest(self, req, reqUu):
 
         try:
+            req.addHeader('reqId', reqUu)
             proxystate.reqQueue.put(req)
+            proxystate.resQueueList[reqUu] = queue.Queue()
         except queue.Full as e:
             proxystate.log.debug(e.__str__())
             return
@@ -224,7 +228,9 @@ class ProxyHandler(socketserver.StreamRequestHandler):
     def setQueuedResponse(self, req):
 
         try:
-            proxystate.resQueue.put(req.getBody())
+            reqId = req.getQueryParams()['reqId'][0]
+            res = req.getBody()
+            proxystate.resQueueList[reqId].put(res)
         except queue.Full as e:
             proxystate.log.debug(e.__str__())
             return
@@ -232,11 +238,9 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         res = HTTPResponse('HTTP/1.1', 200, 'OK')
         self.sendResponse(res.serialize())
 
-    def getQueuedResponse(self):
-        res = proxystate.resQueue.get(timeout=proxystate.responseTimeout)
-
-        #TODO tidy up if no resposne => empty request queue as well
-        # proxystate.reqQueue.
+    def getQueuedResponse(self, reqId):
+        res = proxystate.resQueueList[reqId].get()
+        del proxystate.resQueueList[reqId]
         
         #proxystate.log.printMessages(res)
         self.sendResponse(res)
@@ -359,7 +363,7 @@ class ProxyState:
         self.history    = HttpHistory()
         self.redirect   = None
         self.reqQueue = queue.Queue()
-        self.resQueue = queue.Queue()
+        self.resQueueList = {}
         self.responseTimeout = None
         self.requestTimeout = None
         self.allowed_ips = None
