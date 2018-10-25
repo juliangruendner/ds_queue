@@ -184,8 +184,6 @@ class ProxyHandler(socketserver.StreamRequestHandler):
     # resets the request and response queues
     def resetQueue (self):
         proxystate.reqQueue.queue.clear()
-        proxystate.resQueue.queue.clear()
-
         res = HTTPResponse('HTTP/1.1', 200, 'OK')
         res.body ="queue reset"
         self.sendResponse(res.serialize())
