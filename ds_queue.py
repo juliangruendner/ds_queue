@@ -3,18 +3,17 @@
 """
   Copyright notice
   ================
-  
+
   Copyright (C) 2018
       Julian Gruendner     <juliangruendner@googlemail.com>
 
-  
 """
 
 import sys
 import getopt
-import sys
 sys.path.append('../ds_common')
-from core import *
+from core import ProxyState, ProxyServer
+
 
 def show_help():
     print("""\
@@ -38,7 +37,7 @@ def parse_options():
         show_help()
         exit(1)
 
-    opts = dict([(k.lstrip('-'), v) for (k,v) in opts])
+    opts = dict([(k.lstrip('-'), v) for (k, v) in opts])
 
     if 'h' in opts:
         show_help()
@@ -51,7 +50,7 @@ def parse_options():
 
     if 'p' in opts:
         ps.listenport = int(opts['p'])
-        
+
     if 'a' in opts:
         ps.listenaddr = opts['a']
 
@@ -61,14 +60,14 @@ def parse_options():
         if ':' not in h:
             p = 80
         else:
-            h,p = h.split(':')
+            h, p = h.split(':')
             p = int(p)
         ps.redirect = (h, p)
 
     if 't' in opts:
         timeouts = opts['t']
-        req_t,res_t = timeouts.split(':')
-        
+        req_t, res_t = timeouts.split(':')
+
         if req_t != "None":
             ps.requestTimeout = int(req_t)
 
@@ -93,11 +92,10 @@ def main():
     proxyServer = ProxyServer(proxystate)
     proxyServer.startProxyServer()
 
+
 if __name__ == "__main__":
     global proxystate
     try:
         main()
     except KeyboardInterrupt as e:
         proxystate.log.info("Terminating queue ...")
-
-
