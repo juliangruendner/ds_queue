@@ -4,27 +4,14 @@
   Copyright notice
   ================
   
-  Copyright (C) 2011
-      Roberto Paleari     <roberto.paleari@gmail.com>
-      Alessandro Reina    <alessandro.reina@gmail.com>
-  
-  This program is free software: you can redistribute it and/or modify it under
-  the terms of the GNU General Public License as published by the Free Software
-  Foundation, either version 3 of the License, or (at your option) any later
-  version.
-  
-  HyperDbg is distributed in the hope that it will be useful, but WITHOUT ANY
-  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-  A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-  
-  You should have received a copy of the GNU General Public License along with
-  this program. If not, see <http://www.gnu.org/licenses/>.
+  Copyright (C) 2018
+      Julian Gruendner     <juliangruendner@googlemail.com>
+
   
 """
 
 import sys
 import getopt
-
 import sys
 sys.path.append('../ds_common')
 from core import *
@@ -33,12 +20,10 @@ def show_help():
     print("""\
 Syntax: python %s <options>
  -a <addr>         listen address (default 0.0.0.0)
- -d <filename>     on termination, dump requests & responses to file
  -h                show this help screen
  -p <port>         listen port  (default 8080)
  -r <host:[port]>  redirect HTTP traffic to target host (default port: 80)
- -v                be more verbose
- -x <filename>     load a ProxPy plugin
+ -l                set the log level
  -i                activate queue-poll
  -s                activate https
  -t <requestTimeout:responseTimeout> set requst and response timeout note "None" is for no timeout
@@ -47,7 +32,7 @@ Syntax: python %s <options>
 
 def parse_options():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:vx:ist:c:")
+        opts, args = getopt.getopt(sys.argv[1:], "a:d:hp:r:l:x:ist:c:")
     except getopt.GetoptError as e:
         print(str(e))
         show_help()
@@ -61,11 +46,8 @@ def parse_options():
 
     ps = ProxyState()
 
-    if 'v' in opts:
-        ps.log.verbosity += 1
-
-    if 'd' in opts:
-        ps.dumpfile = opts['d']
+    if 'l' in opts:
+        ps.log.log_level = int(opts['l'])
 
     if 'p' in opts:
         ps.listenport = int(opts['p'])
@@ -103,11 +85,6 @@ def parse_options():
 
     ps.https = True if 's' in opts else False
 
-    # Load an external plugin
-    if 'x' in opts:
-        ps.plugin = ProxyPlugin(opts['x'])
-
-
     return ps
 
 def main():
@@ -121,12 +98,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt as e:
-        nreq, nres = proxystate.history.count()
         proxystate.log.info("Terminating... [%d requests, %d responses]" % (nreq, nres))
-        if proxystate.dumpfile is not None:
-            data = proxystate.history.dumpXML()
-            f = open(proxystate.dumpfile, 'w')
-            f.write(data)
-            f.close()
 
 
