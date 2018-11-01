@@ -98,6 +98,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt as e:
-        proxystate.log.info("Terminating... [%d requests, %d responses]" % (nreq, nres))
+        proxystate.log.info("Terminating queue ...")
 
 
