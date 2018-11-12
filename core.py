@@ -180,6 +180,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
 
     def sendResponse(self, res):
         self.wfile.write(res.encode('latin-1'))
+        self.wfile.flush()  # see if flushing improves performance
 
     def _request(self, conn, method, path, params, headers):
 
