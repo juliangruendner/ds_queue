@@ -19,7 +19,7 @@ from ds_https import HTTPSUtil
 from ds_http import HTTPUtil, HTTPRequest, HTTPResponse
 from logger import Logger
 
-DEFAULT_CERT_FILE = "./cert/ncerts/proxpy.pem"
+DEFAULT_CERT_FILE = "./cert/do_cert/queue.pem"
 
 proxystate = None
 

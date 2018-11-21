@@ -23,8 +23,8 @@ RANDFILE	= $dir/.rand		  # private random number file
 name_opt 	= ca_default		  # Subject Name options
 cert_opt 	= ca_default		  # Certificate field options
 
-default_days	= 3650			  # how long to certify for
-default_md	= default		  # use public key default MD
+default_days	= 365			  # how long to certify for
+default_md	= sha1			  # use public key default MD
 preserve	= no			  # keep passed DN ordering
 
 policy		= policy_match
@@ -38,14 +38,14 @@ commonName		= supplied
 
 ####################################################################
 [ req ]
- default_bits           = 2048
+ default_bits           = 1024
  distinguished_name     = req_distinguished_name
  prompt                 = no
 [ req_distinguished_name ]
  C                      = DE
- CN                     = ds_queue CA
+ CN                     = dsQueueServer
  O                      = ds_queue
- OU                     = ds_queue CA
+ OU                     = dsQueueServer
 
 [ v3_ca ] 
 basicConstraints = CA:TRUE 
