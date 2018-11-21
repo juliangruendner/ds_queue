@@ -11,7 +11,7 @@
 
 import sys
 import getopt
-sys.path.append('../ds_common')
+import ds_http
 from core import ProxyState, ProxyServer
 
 
@@ -25,7 +25,7 @@ Syntax: python %s <options>
  -l                set the log level
  -i                activate queue-poll
  -s                activate https
- -t <requestTimeout:responseTimeout> set requst and response timeout note "None" is for no timeout
+ -t <requestTimeout:responseTimeout> set request and response timeout note "None" is for no timeout
  -c  <ip,ip,ip>              set restriction to certain client ip ("," seperated ip addresses) - note for poll to work poll server needs to be one of them
 """ % sys.argv[0])
 

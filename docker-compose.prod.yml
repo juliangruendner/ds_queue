@@ -5,12 +5,10 @@ services:
   queue_server:
     container_name: queue_server_prod
     image: ds_queue:latest
-    volumes:
-      - ../ds_common:/root/ds_common
     environment:
-    - TIMEOUT_QUEUE_AND_POLL='-t 10:10'
+    - TIMEOUT_QUEUE_AND_POLL='-t 10:10' # define timeout for requests
     - ALLOWED_IPS='' # ALLOWED_IPS='-c 103.102.323.23'
-    - LOG_LEVEL='-l 1'
+    - LOG_LEVEL='-l 1' # define log level
     ports:
       - "443:443"
 
