@@ -12,9 +12,3 @@ else
 fi
 
 docker-compose -f docker-compose.prod.yml up -d
-
-printf "Starting queue in background \n"
-docker exec -d queue_server_prod bash -c "cd /root/ds_queue && ./q_admin.sh start '$TIMEOUT_QUEUE_AND_POLL' '$ALLOWED_IPS' "
-
-printf "Checking if queue is running ... \n "
-docker exec queue_server_prod bash -c "cd /root/ds_queue && ./q_admin.sh status"
