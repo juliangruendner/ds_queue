@@ -14,7 +14,7 @@ function getQueueStatus() {
 
 case "$COMMAND" in
             start )
-            echo "Starting queue on port 443 with timeout $TIMEOUT_QUEUE_AND_POLL"
+            echo "Starting queue on port 443 with timeout $TIMEOUT_QUEUE_AND_POLL, allowed ips: $ALLOWED_IPS and loglevel: $LOG_LEVEL"
             cd /root/ds_queue && python3 ds_queue.py -a 0.0.0.0 -p 443 -r localhost:8843 -d proxyLog.logs -i -s $TIMEOUT_QUEUE_AND_POLL $ALLOWED_IPS $LOG_LEVEL
             ;;
         
