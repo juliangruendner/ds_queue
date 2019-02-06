@@ -14,11 +14,13 @@ import http.client
 import time
 import ssl
 import uuid
+import os
 
 from ds_http.ds_http import HTTPUtil, HTTPRequest, HTTPResponse
 from logger import Logger
 
 DEFAULT_CERT_FILE = "./cert/do_cert/queue.pem"
+CACERT = "./cert/do_cert/queuecacert.pem"
 
 proxystate = None
 
@@ -251,7 +253,11 @@ class ProxyServer():
         self.proxyServer = ThreadedHTTPProxyServer((self.proxyServer_host, self.proxyServer_port), ProxyHandler)
 
         if proxystate.https:
-            self.proxyServer.socket = ssl.wrap_socket(self.proxyServer.socket, certfile=DEFAULT_CERT_FILE, server_side=True)
+
+            if os.path.isfile(CACERT):
+                self.proxyServer.socket = ssl.wrap_socket(self.proxyServer.socket, certfile=DEFAULT_CERT_FILE, ca_certs=CACERT, server_side=True)
+            else:
+                self.proxyServer.socket = ssl.wrap_socket(self.proxyServer.socket, certfile=DEFAULT_CERT_FILE, server_side=True)
 
         server_thread = threading.Thread(target=self.proxyServer.serve_forever)
 
