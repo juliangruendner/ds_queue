@@ -8,7 +8,7 @@
       Julian Gruendner     <juliangruendner@googlemail.com>
 
 """
-
+import logging
 import sys
 import getopt
 import ds_http
@@ -47,6 +47,7 @@ def parse_options():
 
     if 'l' in opts:
         ps.log.log_level = int(opts['l'])
+        ps.log_level = int(opts['l'])
 
     if 'p' in opts:
         ps.listenport = int(opts['p'])
@@ -89,9 +90,9 @@ def parse_options():
 def main():
     global proxystate
     proxystate = parse_options()
+    logging.basicConfig(filename='queue_debug.log', level=proxystate.log_level, format='%(relativeCreated)6d %(threadName)s %(message)s')
     proxyServer = ProxyServer(proxystate)
     proxyServer.startProxyServer()
-
 
 if __name__ == "__main__":
     global proxystate

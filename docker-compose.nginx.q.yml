@@ -1,0 +1,22 @@
+version: '3.5'
+
+services:
+  nginx_queue:
+    container_name: nginx_queue
+    restart: unless-stopped
+    image: nginx:latest
+    ports:
+      - "443:443"
+    networks:
+      - ds_opal_opal_net
+    environment:
+      - ALLOWED_IPS=${ALLOWED_IPS}
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    command: bash -c "cd /etc/nginx/conf.d/ && ./q_nginx_start.sh"
+
+networks:
+  ds_opal_opal_net:
+    external: true
+

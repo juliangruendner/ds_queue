@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3
 
 ADD . /root/ds_queue
 RUN cd /root/ds_queue/cert && ./generateNewProdCert.sh

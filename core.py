@@ -15,6 +15,8 @@ import time
 import ssl
 import uuid
 import os
+import logging
+import socket
 
 from ds_http.ds_http import HTTPUtil, HTTPRequest, HTTPResponse
 from logger import Logger
@@ -37,6 +39,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         socketserver.StreamRequestHandler.__init__(self, request, client_address, server)
 
     def handle(self):
+
         global proxystate
 
         if self.keepalive:
@@ -55,7 +58,15 @@ class ProxyHandler(socketserver.StreamRequestHandler):
             return
 
         req = req.clone()
+        orig_ip = req.getHeader("X-Real-IP")
 
+        if len(orig_ip) > 0:
+            orig_ip = orig_ip[0]
+
+        if proxystate.allowed_ips and orig_ip not in proxystate.allowed_ips:
+            print("rejecting ip : "+ str(orig_ip))
+            return
+        
         if req.isKeepAlive():
             self.keepalive = True
         else:
@@ -94,6 +105,8 @@ class ProxyHandler(socketserver.StreamRequestHandler):
             self.setQueuedResponse(req)
         elif 'resetQueue' in queryParams:
             self.resetQueue()
+        elif 'ping' in queryParams:
+            self.ping()
         else:
             self.execQueueRequest(req)
 
@@ -130,7 +143,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         self.sendResponse(res.serialize())
 
     def setQueuedResponse(self, req):
-
+      
         try:
             reqId = req.getQueryParams()['reqId'][0]
             res = req.getBody()
@@ -152,6 +165,10 @@ class ProxyHandler(socketserver.StreamRequestHandler):
     def resetQueue(self):
         proxystate.reqQueue.queue.clear()
         res = HTTPResponse('HTTP/1.1', 200, 'OK', body="queue reset \n")
+        self.sendResponse(res.serialize())
+
+    def ping(self):
+        res = HTTPResponse('HTTP/1.1', 200, 'OK', body="queue is still alive \n")
         self.sendResponse(res.serialize())
 
     def createConnection(self, host, port):
@@ -228,24 +245,14 @@ class ProxyHandler(socketserver.StreamRequestHandler):
 class ThreadedHTTPProxyServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
-    def verify_request(self, request, client_address):
-
-        if not proxystate.allowed_ips:
-            return True
-
-        if client_address[0] in proxystate.allowed_ips:
-            return True
-
-        print("rejecting: " + client_address[0])
-        return False
-
-
 class ProxyServer():
     def __init__(self, init_state):
         global proxystate
         proxystate = init_state
         self.proxyServer_port = proxystate.listenport
         self.proxyServer_host = proxystate.listenaddr
+
+
 
     def startProxyServer(self):
         global proxystate
@@ -279,6 +286,7 @@ class ProxyState:
 
         # Internal state
         self.log = Logger()
+        self.log_level = logging.ERROR
         self.redirect = None
         self.reqQueue = queue.Queue()
         self.resQueueList = {}
