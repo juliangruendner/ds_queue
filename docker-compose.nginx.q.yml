@@ -4,9 +4,11 @@ services:
   nginx_queue:
     container_name: nginx_queue
     restart: unless-stopped
-    image: nginx:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx.queue
     ports:
-      - "443:443"
+      - "443:8443"
     networks:
       - ds_opal_opal_net
     environment:
